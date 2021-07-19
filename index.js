@@ -24,8 +24,6 @@ const dirVideo = 'C:\\Users\\79629\\WebstormProjects\\TelegramBot\\Video\\'
 bot.setMyCommands([
     {command: '/start', description: 'Начальное приветствие'},
     {command: '/info', description: 'Получить информцию о пользователе'},
-    {command: '/game', description: 'Игра угадай цифру'},
-    {command: '/addyd', description: 'Список чатов пользователя'},
 ])
 
 const start = () => {
