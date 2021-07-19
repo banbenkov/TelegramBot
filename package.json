@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "esm": "^3.2.25",
+    "node": "^16.5.0",
     "node-telegram-bot-api": "^0.53.0",
     "nodemon": "^2.0.12",
     "yandex-disk": "0.0.8"
