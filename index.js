@@ -51,6 +51,16 @@ const againOptions = {
     })
 }
 
+const uploadData = (dirName, fromDir, fileName) => {
+    YandexDrive.cd(dirName)
+    YandexDrive.uploadFile(fromDir + fileName, fileName, (err, msg) => {
+        YandexDrive.cd('..')
+        YandexDrive.cd('..')
+        YandexDrive.cd('..')
+        console.log(YandexDrive._workDir)
+    })
+}
+
 const start = () => {
     bot.setMyCommands([
         {command: '/start', description: 'Начальное приветствие'},
@@ -71,22 +81,37 @@ const start = () => {
 
             const FileName = msg.substr(dir.length)
             console.log(currentDate.getDate() + "." + currentDate.getMonth() + "." + currentDate.getFullYear())
-
-
-            const p = new Promise(resolve => {
+            YandexDrive.cd('Bot')
                 YandexDrive.exists(currentDate.getDate() + "." + currentDate.getMonth() + "." + currentDate.getFullYear(), (err, msg) => {
                     if (msg === false) {
-                        createDateDir()
+                        YandexDrive.mkdir(currentDate.getDate() + "." + currentDate.getMonth() + "." + currentDate.getFullYear(), (err, msg) => {
+                            YandexDrive.cd(currentDate.getDate() + "." + currentDate.getMonth() + "." + currentDate.getFullYear())
+                            YandexDrive.exists('Photo', (err, msg) => {
+                                if (msg === false) {
+                                    YandexDrive.mkdir('Photo', (err, msg) => {
+                                        uploadData('Photo', dir, FileName)
+                                    })
+                                } else {
+                                    uploadData('Photo', dir, FileName)
+                        }
+                    })
+                        })
+                    }else {
+                        YandexDrive.cd(currentDate.getDate() + "." + currentDate.getMonth() + "." + currentDate.getFullYear())
+                        YandexDrive.exists('Photo', (err, msg) => {
+                            if (msg === false) {
+                                YandexDrive.mkdir('Photo', (err, msg) => {
+                                    uploadData('Photo', dir, FileName)
+                                })
+                            } else {
+                                uploadData('Photo', dir, FileName)
+                            }
+                        })
                     }
                 })
-            })
 
-            p.then(data => {
-                YandexDrive.uploadFile(dir + FileName, FileName, (err, msg) => {
-                    console.log(msg)
-                })
-                YandexDrive._workDir = '/Bot'
-            })
+
+
 
         })
 
