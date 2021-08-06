@@ -1,55 +1,71 @@
+const {Chat} = require('../models/models')
+const YandexApi = require('yandex-disk').YandexDisk
+const fs = require('fs')
+const path = require('path')
+const moment = require('moment')
 
-module.exports = (bot, YandexDrive, dir) => {
-    const uploadData = (dirName, fromDir, fileName) => {
+module.exports = (bot) => {
+    const typeFile = 'Photo'
+    const dir = path.resolve(__dirname, '..', 'photo')
+    const uploadData = (dirName, fromDir, fileName, YandexDrive) => {
         YandexDrive.cd(dirName)
         YandexDrive.uploadFile(fromDir + fileName, fileName, (err, msg) => {
             YandexDrive.cd('..')
             YandexDrive.cd('..')
             YandexDrive.cd('..')
             console.log(YandexDrive._workDir)
+            fs.unlink(dir + '\\' + fileName, err => {
+                console.log(err)})
         })
     }
 
-
     bot.on('photo', async msg => {
-        await bot.downloadFile(msg.photo[2].file_id, dir).then(msg => {
-            const currentDate = new Date()
-            const toDay = currentDate.getDate() + "." + currentDate.getMonth() + "." + currentDate.getFullYear()
+        console.log(dir)
+        const chat = await Chat.findOne({where: {chatId: msg.chat.id}})
+        if (chat !== null && chat.dirName !== undefined) {
+            const YandexDrive = new YandexApi(chat.tokenYandex)
 
-            const FileName = msg.substr(dir.length)
-            console.log(toDay)
-            YandexDrive.cd('Bot')
-            YandexDrive.exists(toDay, (err, msg) => {
-                if (msg === false) {
-                    YandexDrive.mkdir(toDay, (err, msg) => {
+            await bot.downloadFile(msg.photo[2].file_id, dir).then(msg => {
+                moment.locale('ru')
+                const toDay = moment().format('L')
+                const FileName = msg.substr(dir.length)
+                console.log(toDay)
+                YandexDrive.cd(chat.dirName)
+                YandexDrive.exists(toDay, (err, msg) => {
+                    if (msg === false) {
+                        YandexDrive.mkdir(toDay, (err, msg) => {
+                            YandexDrive.cd(toDay)
+                            YandexDrive.exists(typeFile, (err, msg) => {
+                                if (msg === false) {
+                                    YandexDrive.mkdir(typeFile, (err, msg) => {
+                                        uploadData(typeFile, dir, FileName, YandexDrive)
+                                    })
+                                } else {
+                                    uploadData(typeFile, dir, FileName, YandexDrive)
+                                }
+                            })
+                        })
+                    }else {
                         YandexDrive.cd(toDay)
-                        YandexDrive.exists('Photo', (err, msg) => {
+                        YandexDrive.exists(typeFile, (err, msg) => {
                             if (msg === false) {
-                                YandexDrive.mkdir('Photo', (err, msg) => {
-                                    uploadData('Photo', dir, FileName)
+                                YandexDrive.mkdir(typeFile, (err, msg) => {
+                                    uploadData(typeFile, dir, FileName, YandexDrive)
                                 })
                             } else {
-                                uploadData('Photo', dir, FileName)
+                                uploadData(typeFile, dir, FileName, YandexDrive)
                             }
                         })
-                    })
-                }else {
-                    YandexDrive.cd(toDay)
-                    YandexDrive.exists('Photo', (err, msg) => {
-                        if (msg === false) {
-                            YandexDrive.mkdir('Photo', (err, msg) => {
-                                uploadData('Photo', dir, FileName)
-                            })
-                        } else {
-                            uploadData('Photo', dir, FileName)
-                        }
-                    })
-                }
+                    }
+                })
             })
 
-        })
+        }
+
 
     })
+
+
 
 }
 

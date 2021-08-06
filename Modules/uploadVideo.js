@@ -1,55 +1,71 @@
-module.exports = (bot, YandexDrive, dir) => {
+const {Chat} = require('../models/models')
+const YandexApi = require('yandex-disk').YandexDisk
+const fs = require('fs')
+const path = require('path')
+const moment = require('moment')
+
+module.exports = (bot) => {
 
     const typeFile = 'Video'
+    const dir = path.resolve(__dirname, '..', 'Video')
 
-    const uploadData = (dirName, fromDir, fileName) => {
+    const uploadData = (dirName, fromDir, fileName, YandexDrive) => {
         YandexDrive.cd(dirName)
         YandexDrive.uploadFile(fromDir + fileName, fileName, (err, msg) => {
             YandexDrive.cd('..')
             YandexDrive.cd('..')
             YandexDrive.cd('..')
             console.log(YandexDrive._workDir)
+            fs.unlink(dir + '\\' + fileName, err => {
+                console.log(err)})
         })
     }
 
 
     bot.on('video', async msg => {
-        await bot.downloadFile(msg.video.file_id, dir).then(msg => {
-            const currentDate = new Date()
-            const toDay = currentDate.getDate() + "." + currentDate.getMonth() + "." + currentDate.getFullYear()
+        const chat = await Chat.findOne({where: {chatId: msg.chat.id}})
 
-            const FileName = msg.substr(dir.length)
-            console.log(toDay)
-            YandexDrive.cd('Bot')
-            YandexDrive.exists(toDay, (err, msg) => {
-                if (msg === false) {
-                    YandexDrive.mkdir(toDay, (err, msg) => {
+        if (chat !== null && chat.dirName !== undefined) {
+            const YandexDrive = new YandexApi(chat.tokenYandex)
+            await bot.downloadFile(msg.video.file_id, dir).then(msg => {
+                moment.locale('ru')
+                const toDay = moment().format('L')
+
+                const FileName = msg.substr(dir.length)
+                console.log(toDay)
+                YandexDrive.cd(chat.dirName)
+                YandexDrive.exists(toDay, (err, msg) => {
+                    if (msg === false) {
+                        YandexDrive.mkdir(toDay, (err, msg) => {
+                            YandexDrive.cd(toDay)
+                            YandexDrive.exists(typeFile, (err, msg) => {
+                                if (msg === false) {
+                                    YandexDrive.mkdir(typeFile, (err, msg) => {
+                                        uploadData(typeFile, dir, FileName, YandexDrive)
+                                    })
+                                } else {
+                                    uploadData(typeFile, dir, FileName, YandexDrive)
+                                }
+                            })
+                        })
+                    }else {
                         YandexDrive.cd(toDay)
                         YandexDrive.exists(typeFile, (err, msg) => {
                             if (msg === false) {
                                 YandexDrive.mkdir(typeFile, (err, msg) => {
-                                    uploadData(typeFile, dir, FileName)
+                                    uploadData(typeFile, dir, FileName, YandexDrive)
                                 })
                             } else {
-                                uploadData(typeFile, dir, FileName)
+                                uploadData(typeFile, dir, FileName, YandexDrive)
                             }
                         })
-                    })
-                }else {
-                    YandexDrive.cd(toDay)
-                    YandexDrive.exists(typeFile, (err, msg) => {
-                        if (msg === false) {
-                            YandexDrive.mkdir(typeFile, (err, msg) => {
-                                uploadData(typeFile, dir, FileName)
-                            })
-                        } else {
-                            uploadData(typeFile, dir, FileName)
-                        }
-                    })
-                }
-            })
+                    }
+                })
 
-        })
+            })
+        }
+
+
 
 
     })
